@@ -3,6 +3,7 @@ import argparse
 import sys
 import pickle
 import os
+import csv
 import tqdm
 import h5py
 import PIL
@@ -23,10 +24,10 @@ from core.utils.vis_utils import add_caption_to_img, init_wandb, dump_video_wand
 
 
 TARGET_DATA_DIR = "/private/home/kpertsch/data/human_kitchen_sub1_224/MW_BB_TB_SC"
-VERB_TAXONOMY = "/private/home/kpertsch/code/epic-kitchens-100-annotations/EPIC_100_verb_classes.pkl"
-NOUN_TAXONOMY = "/private/home/kpertsch/code/epic-kitchens-100-annotations/EPIC_100_noun_classes.pkl"
+VERB_TAXONOMY = "/private/home/kpertsch/code/epic-kitchens-100-annotations/EPIC_100_verb_classes.csv"
+NOUN_TAXONOMY = "/private/home/kpertsch/code/epic-kitchens-100-annotations/EPIC_100_noun_classes.csv"
 N_SEQS = 3
-TAG = 'test_vis'
+TAG = 'vis_EPIC'
 VIS_TOP_N = 5       # top N skill predictions to visualize
 FILE_ENDING = ".h5"
 RESIZE_DIM = 256
@@ -119,6 +120,14 @@ def load_config(args):
     return cfg
 
 
+def read_taxonomy(filepath):
+    with open(filepath) as fp:
+        reader = csv.reader(fp, delimiter=",", quotechar='"')
+        next(reader, None)  # skip the headers
+        data_read = [row[1] for row in reader]
+    return data_read
+
+
 def get_filenames():
     print("Collect filenames...")
     filenames = []
@@ -195,11 +204,9 @@ def main():
     filenames = get_filenames()
 
     # load taxonomy
-    with open(VERB_TAXONOMY, "rb") as F:
-        verb_taxonomy = pickle.load(F)
-    with open(NOUN_TAXONOMY, "rb") as F:
-        noun_taxonomy = pickle.load(F)
-    # print("#Verbs: {}, #Nouns: {}".format(len(verb_taxonomy), len(noun_taxonomy)))
+    verb_taxonomy = read_taxonomy(VERB_TAXONOMY)
+    noun_taxonomy = read_taxonomy(NOUN_TAXONOMY)
+    print("#Verbs: {}, #Nouns: {}".format(len(verb_taxonomy), len(noun_taxonomy)))
 
     # initialize wandb
     init_wandb('clvr', 'comp_imitation', tag=TAG)
@@ -226,18 +233,16 @@ def main():
             # create subsampled version for fast-slow architecture
             subseq_slow = subseq[:, :, np.arange(0, window_size, step=cfg.SLOWFAST.ALPHA)]
 
-            import pdb; pdb.set_trace()
             outputs = model([torch.tensor(subseq_slow, device=device).float(),
                              torch.tensor(subseq, device=device).float()])
-            import pdb; pdb.set_trace()
 
             # extract skill string
             top_n_verbs = torch.topk(outputs[0][0], VIS_TOP_N).indices
             top_n_nouns = torch.topk(outputs[1][0], VIS_TOP_N).indices
             skill = []
             for top_n_verb_idx, top_n_noun_idx in zip(top_n_verbs, top_n_nouns):
-                skill.append(verb_taxonomy[top_n_verb_idx.data.cpu().numpy()]) \
-                        + ' ' + noun_taxonomy[top_n_noun_idx.data.cpu().numpy()]))
+                skill.append(verb_taxonomy[top_n_verb_idx.data.cpu().numpy()] \
+                        + ' ' + noun_taxonomy[top_n_noun_idx.data.cpu().numpy()])
 
             # log frame and skill for later visualization
             frames.append(images[i])
