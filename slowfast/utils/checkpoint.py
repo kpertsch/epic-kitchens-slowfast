@@ -160,6 +160,7 @@ def load_checkpoint(
     optimizer=None,
     inflation=False,
     convert_from_caffe2=False,
+    no_head=False,
 ):
     """
     Load the checkpoint from the given file. If inflation is True, inflate the
@@ -238,7 +239,10 @@ def load_checkpoint(
             )
             ms.load_state_dict(inflated_model_dict, strict=False)
         else:
-            ms.load_state_dict(checkpoint["model_state"])
+            if no_head:
+                checkpoint["model_state"].pop('head.projection_verb.weight')
+                checkpoint["model_state"].pop('head.projection_verb.bias')
+            ms.load_state_dict(checkpoint["model_state"], strict=not no_head)
             # Load the optimizer state (commonly not done when fine-tuning)
             if optimizer:
                 optimizer.load_state_dict(checkpoint["optimizer_state"])

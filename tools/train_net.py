@@ -396,13 +396,20 @@ def train(cfg):
             cfg.TRAIN.CHECKPOINT_FILE_PATH,
             model,
             cfg.NUM_GPUS > 1,
-            optimizer,
+            None, #optimizer,
             inflation=cfg.TRAIN.CHECKPOINT_INFLATE,
             convert_from_caffe2=cfg.TRAIN.CHECKPOINT_TYPE == "caffe2",
+            no_head=True,
         )
         start_epoch = 0
     else:
         start_epoch = 0
+
+    # freeze all but the head of the model
+    mu = model.module if cfg.NUM_GPUS > 1 else model
+    for name, p in mu.named_parameters():
+        if p.requires_grad and 'head' not in name:
+            p.requires_grad = False
 
     # Create the video train and val loaders.
     if cfg.TRAIN.DATASET != 'epickitchens' or not cfg.EPICKITCHENS.TRAIN_PLUS_VAL:
