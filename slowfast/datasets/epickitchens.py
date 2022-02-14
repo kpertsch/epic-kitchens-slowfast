@@ -15,6 +15,16 @@ from .frame_loader import pack_frames_to_video_clip
 logger = logging.get_logger(__name__)
 
 
+# classes used for finetuning labels
+FT_CLASSES = {
+    'cupboard': ['open'],   # 'close
+    'hob': ['adjust', 'turn-on', 'switch-on'],     # 'turn-off', 'switch-off', 'turn-down'
+    'kettle': ['take', 'put-down', 'pick-up', 'move', 'hold', 'put', 'pick', 'grab', 'get', 'place', 'place-on', 'put-on'],
+    'button': ['press', 'push'],
+    'microwave': ['open'],    # 'close'
+}
+
+
 @DATASET_REGISTRY.register()
 class Epickitchens(torch.utils.data.Dataset):
 
@@ -66,6 +76,8 @@ class Epickitchens(torch.utils.data.Dataset):
         self._spatial_temporal_idx = []
         for file in path_annotations_pickle:
             for tup in pd.read_pickle(file).iterrows():
+                if tup[1]['noun'] not in FT_CLASSES or tup[1]['verb'] not in FT_CLASSES[tup[1]['noun']]:
+                    continue    # filter all samples that do not conform with finetuning classes
                 for idx in range(self._num_clips):
                     self._video_records.append(EpicKitchensVideoRecord(tup))
                     self._spatial_temporal_idx.append(idx)

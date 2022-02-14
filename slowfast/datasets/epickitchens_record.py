@@ -12,6 +12,9 @@ def timestamp_to_sec(timestamp):
     return sec
 
 
+FT_INDEXES = ['cupboard', 'hob', 'kettle', 'button', 'microwave']
+
+
 class EpicKitchensVideoRecord(VideoRecord):
     def __init__(self, tup):
         self._index = str(tup[0])
@@ -44,8 +47,10 @@ class EpicKitchensVideoRecord(VideoRecord):
 
     @property
     def label(self):
-        return {'verb': self._series['verb_class'] if 'verb_class' in self._series else -1,
+        return {'verb': FT_INDEXES.index(self._series['noun']),
                 'noun': self._series['noun_class'] if 'noun_class' in self._series else -1}
+        # return {'verb': self._series['verb_class'] if 'verb_class' in self._series else -1,
+        #         'noun': self._series['noun_class'] if 'noun_class' in self._series else -1}
 
     @property
     def metadata(self):
