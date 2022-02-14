@@ -23,17 +23,20 @@ from slowfast.utils.meters import AVAMeter, TestMeter, EPICTestMeter
 from core.utils.vis_utils import add_caption_to_img, init_wandb, dump_video_wandb
 
 
-TARGET_DATA_DIR = "/private/home/kpertsch/data/human_kitchen_sub1_224/MW_BB_TB_SC"
+#TARGET_DATA_DIR = "/private/home/kpertsch/data/human_kitchen_sub1_224/MW_BB_TB_SC"
+TARGET_DATA_DIR = "/datasets01/EPIC-KITCHENS-100/P01/rgb_frames/P01_101/"
 VERB_TAXONOMY = "/private/home/kpertsch/code/epic-kitchens-100-annotations/EPIC_100_verb_classes.csv"
 NOUN_TAXONOMY = "/private/home/kpertsch/code/epic-kitchens-100-annotations/EPIC_100_noun_classes.csv"
-N_SEQS = 3
-TAG = 'vis_EPIC'
+N_SEQS = 1
+TAG = 'vis_EPIC_TESTSET'
 VIS_TOP_N = 5       # top N skill predictions to visualize
-FILE_ENDING = ".h5"
+FILE_ENDING = ".jpg" #".jpg" #".h5"
 RESIZE_DIM = 256
 
 NORM_MEAN = 0.45
 NORM_STD = 0.225
+
+EPIC_OFFSET = 12800
 
 
 def parse_args():
@@ -130,6 +133,7 @@ def read_taxonomy(filepath):
 
 def get_filenames():
     print("Collect filenames...")
+    if FILE_ENDING == ".jpg": return ['.']
     filenames = []
     for root, dirs, files in tqdm.tqdm(os.walk(TARGET_DATA_DIR)):
         for file in files:
@@ -141,7 +145,7 @@ def get_filenames():
     return filenames
 
 
-def get_frames(filename):
+def get_frames(filename, sampling_rate):
     if FILE_ENDING == ".h5":
         with h5py.File(filename, 'r') as F:
             images = F['traj0/images'][()]
@@ -153,8 +157,17 @@ def get_frames(filename):
             frame = np.array(PIL.Image.fromarray(frame).resize((RESIZE_DIM, RESIZE_DIM)))
             images.append(frame)
         images = np.stack(images)
+    elif FILE_ENDING == ".jpg":
+        images = []
+        for i in range(500):
+            frame = PIL.Image.open(os.path.join(TARGET_DATA_DIR, 'frame_{:010d}.jpg'.format(EPIC_OFFSET+i)))
+            frame = np.array(frame.resize((RESIZE_DIM, RESIZE_DIM)))
+            images.append(frame)
+        images = np.stack(images)
     else:
         raise NotImplementedError
+    if sampling_rate > 1:
+        images = images[::sampling_rate]
     return images
 
 
@@ -215,7 +228,7 @@ def main():
 
     # run inference for target data sequences
     for filename in filenames[:N_SEQS]:
-        images = get_frames(filename)
+        images = get_frames(filename, cfg.DATA.SAMPLING_RATE)
 
         # sliding inference window over sequence
         seq_len = images.shape[0]
