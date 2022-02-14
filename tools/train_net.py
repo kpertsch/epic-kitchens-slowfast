@@ -80,8 +80,8 @@ def train_epoch(train_loader, model, optimizer, train_meter, cur_epoch, cfg):
 
             # Compute the loss.
             loss_verb = loss_fun(preds[0], labels['verb'])
-            loss_noun = 0. #loss_fun(preds[1], labels['noun'])
-            loss = 0.5 * (loss_verb + loss_noun)
+            loss_noun = loss_fun(preds[1], labels['noun'])
+            loss = (loss_verb + 0.*loss_noun)
 
             # check Nan Loss.
             misc.check_nan_losses(loss)
