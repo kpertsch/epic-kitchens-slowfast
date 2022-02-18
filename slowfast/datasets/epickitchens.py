@@ -19,10 +19,13 @@ logger = logging.get_logger(__name__)
 FT_CLASSES = {
     'cupboard': ['open'],   # 'close
     'hob': ['adjust', 'turn-on', 'switch-on'],     # 'turn-off', 'switch-off', 'turn-down'
-    'kettle': ['take', 'put-down', 'pick-up', 'move', 'hold', 'put', 'pick', 'grab', 'get', 'place', 'place-on', 'put-on'],
-    'button': ['press', 'push'],
-    'microwave': ['open'],    # 'close'
+    #'kettle': ['take', 'put-down', 'pick-up', 'move', 'hold', 'put', 'pick', 'grab', 'get', 'place', 'place-on', 'put-on'],
+    'pot': ['take', 'put-onto', 'pick-up', 'put-on', 'put', 'put-down', 'grab'],
+    #'button': ['press', 'push'],
+    'microwave': ['open'], #, 'close'],
 }
+
+BALANCE_FACTOR = {'cupboard': 1, 'hob': 6, 'pot': 3, 'button': 11, 'microwave': 14}   # kettle: 5
 
 
 @DATASET_REGISTRY.register()
@@ -78,9 +81,10 @@ class Epickitchens(torch.utils.data.Dataset):
             for tup in pd.read_pickle(file).iterrows():
                 if tup[1]['noun'] not in FT_CLASSES or tup[1]['verb'] not in FT_CLASSES[tup[1]['noun']]:
                     continue    # filter all samples that do not conform with finetuning classes
-                for idx in range(self._num_clips):
-                    self._video_records.append(EpicKitchensVideoRecord(tup))
-                    self._spatial_temporal_idx.append(idx)
+                for _ in range(1): #BALANCE_FACTOR[tup[1]['noun']]):
+                    for idx in range(self._num_clips):
+                        self._video_records.append(EpicKitchensVideoRecord(tup))
+                        self._spatial_temporal_idx.append(idx)
         assert (
                 len(self._video_records) > 0
         ), "Failed to load EPIC-KITCHENS split {} from {}".format(

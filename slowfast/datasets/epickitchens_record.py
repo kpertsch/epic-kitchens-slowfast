@@ -12,7 +12,7 @@ def timestamp_to_sec(timestamp):
     return sec
 
 
-FT_INDEXES = ['cupboard', 'hob', 'kettle', 'button', 'microwave']
+FT_INDEXES = ['cupboard', 'hob', 'pot', 'button', 'microwave']
 
 
 class EpicKitchensVideoRecord(VideoRecord):

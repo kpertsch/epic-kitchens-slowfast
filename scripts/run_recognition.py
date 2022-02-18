@@ -23,20 +23,22 @@ from slowfast.utils.meters import AVAMeter, TestMeter, EPICTestMeter
 from core.utils.vis_utils import add_caption_to_img, init_wandb, dump_video_wandb
 
 
-#TARGET_DATA_DIR = "/private/home/kpertsch/data/human_kitchen_sub1_224/MW_BB_TB_SC"
-TARGET_DATA_DIR = "/datasets01/EPIC-KITCHENS-100/P01/rgb_frames/P01_101/"
+TARGET_DATA_DIR = "/private/home/kpertsch/data/human_kitchen_newVids/GH010070.MP4" #human_kitchen_sub1_224/MW_KET_BB_SC"
+#TARGET_DATA_DIR = "/datasets01/EPIC-KITCHENS-100/P01/rgb_frames/P01_101/"
 VERB_TAXONOMY = "/private/home/kpertsch/code/epic-kitchens-100-annotations/EPIC_100_verb_classes.csv"
 NOUN_TAXONOMY = "/private/home/kpertsch/code/epic-kitchens-100-annotations/EPIC_100_noun_classes.csv"
 N_SEQS = 1
-TAG = 'vis_EPIC_TESTSET'
-VIS_TOP_N = 5       # top N skill predictions to visualize
-FILE_ENDING = ".jpg" #".jpg" #".h5"
+TAG = 'vis_EPIC_FT_BALANCE_POT_newVids'
+VIS_TOP_N = 4       # top N skill predictions to visualize
+FILE_ENDING = ".mp4" #".jpg" #".h5"
 RESIZE_DIM = 256
 
 NORM_MEAN = 0.45
 NORM_STD = 0.225
 
 EPIC_OFFSET = 12800
+
+FT_INDEXES = ['open cupboard', 'turn on stove', 'move kettle', 'turn on light', 'open microwave']
 
 
 def parse_args():
@@ -133,7 +135,7 @@ def read_taxonomy(filepath):
 
 def get_filenames():
     print("Collect filenames...")
-    if FILE_ENDING == ".jpg": return ['.']
+    if FILE_ENDING in [".jpg", ".mp4"]: return ['.']
     filenames = []
     for root, dirs, files in tqdm.tqdm(os.walk(TARGET_DATA_DIR)):
         for file in files:
@@ -151,7 +153,7 @@ def get_frames(filename, sampling_rate):
             images = F['traj0/images'][()]
     elif FILE_ENDING == ".mp4":
         images = []
-        clip = VideoFileClip(filename)
+        clip = VideoFileClip(TARGET_DATA_DIR)
         print("Reading {} frames...".format(clip.reader.nframes))
         for frame in tqdm.tqdm(clip.iter_frames()):
             frame = np.array(PIL.Image.fromarray(frame).resize((RESIZE_DIM, RESIZE_DIM)))
@@ -217,7 +219,7 @@ def main():
     filenames = get_filenames()
 
     # load taxonomy
-    verb_taxonomy = read_taxonomy(VERB_TAXONOMY)
+    verb_taxonomy = FT_INDEXES #read_taxonomy(VERB_TAXONOMY)
     noun_taxonomy = read_taxonomy(NOUN_TAXONOMY)
     print("#Verbs: {}, #Nouns: {}".format(len(verb_taxonomy), len(noun_taxonomy)))
 
@@ -254,8 +256,9 @@ def main():
             top_n_nouns = torch.topk(outputs[1][0], VIS_TOP_N).indices
             skill = []
             for top_n_verb_idx, top_n_noun_idx in zip(top_n_verbs, top_n_nouns):
-                skill.append(verb_taxonomy[top_n_verb_idx.data.cpu().numpy()] \
-                        + ' ' + noun_taxonomy[top_n_noun_idx.data.cpu().numpy()])
+                skill.append("{:.2f} - ".format(outputs[0][0][top_n_verb_idx].data.cpu().numpy()) \
+                        + verb_taxonomy[top_n_verb_idx.data.cpu().numpy()]) # \
+                        #+ ' ' + noun_taxonomy[top_n_noun_idx.data.cpu().numpy()])
 
             # log frame and skill for later visualization
             frames.append(images[i])
