@@ -60,12 +60,13 @@ TEST:
   DATASET: epickitchens
   BATCH_SIZE: 32
   NUM_SPATIAL_CROPS: 1
+  CHECKPOINT_FILE_PATH: /private/home/kpertsch/code/epic-kitchens-slowfast/experiments/ft_noBalance_noLight/checkpoints/checkpoint_epoch_00030.pyth
 DATA_LOADER:
   NUM_WORKERS: 8
   PIN_MEMORY: True
 EPICKITCHENS:
   TRAIN_PLUS_VAL: False
-NUM_GPUS: 8
+NUM_GPUS: 1
 NUM_SHARDS: 1
 RNG_SEED: 0
 OUTPUT_DIR: .
